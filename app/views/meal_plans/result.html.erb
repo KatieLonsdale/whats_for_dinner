@@ -1,0 +1,373 @@
+<div class="meal-plan-result">
+  <div class="result-header">
+    <h1>Your Meal Plan</h1>
+    <p class="result-dates">
+      <%= @meal_plan.start_date.strftime('%B %d, %Y') %> —
+      <%= @meal_plan.end_date.strftime('%B %d, %Y') %>
+      (<%= (@meal_plan.end_date - @meal_plan.start_date).to_i + 1 %> days for <%= @meal_plan.servings %> <%= "person".pluralize(@meal_plan.servings) %>)
+    </p>
+    <%= link_to 'Create Another Plan', new_meal_plan_path, class: 'btn btn-secondary' %>
+  </div>
+
+  <!-- Daily Meal Plan Section -->
+  <section class="meal-plan-section">
+    <h2>Daily Meal Plan</h2>
+    <div class="daily-meals">
+      <% @meal_plan_data['meal_plan'].each do |day| %>
+        <div class="daily-meal-card">
+          <h3 class="meal-date"><%= Date.parse(day['date']).strftime('%A, %B %d') %></h3>
+          <div class="meals-grid">
+            <div class="meal breakfast">
+              <h4>Breakfast</h4>
+              <p class="meal-name"><strong><%= day['meals']['breakfast']['name'] %></strong></p>
+              <p class="meal-description"><%= day['meals']['breakfast']['description'] %></p>
+            </div>
+            <div class="meal lunch">
+              <h4>Lunch</h4>
+              <p class="meal-name"><strong><%= day['meals']['lunch']['name'] %></strong></p>
+              <p class="meal-description"><%= day['meals']['lunch']['description'] %></p>
+            </div>
+            <div class="meal dinner">
+              <h4>Dinner</h4>
+              <p class="meal-name"><strong><%= day['meals']['dinner']['name'] %></strong></p>
+              <p class="meal-description"><%= day['meals']['dinner']['description'] %></p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <!-- Recipes Section -->
+  <section class="meal-plan-section">
+    <h2>Recipes</h2>
+    <div class="recipes-grid">
+      <% @meal_plan_data['recipes'].each do |recipe| %>
+        <div class="recipe-card">
+          <h3><%= recipe['meal_name'] %></h3>
+          <div class="recipe-meta">
+            <span class="meta-item">
+              <strong>Serves:</strong> <%= recipe['serves'] %>
+            </span>
+            <span class="meta-item">
+              <strong>Prep:</strong> <%= recipe['prep_time'] %>
+            </span>
+            <span class="meta-item">
+              <strong>Cook:</strong> <%= recipe['cook_time'] %>
+            </span>
+            <span class="meta-item cost">
+              <strong>Cost/Serving:</strong> <%= recipe['estimated_cost_per_serving'] %>
+            </span>
+          </div>
+
+          <div class="recipe-ingredients">
+            <h4>Ingredients</h4>
+            <ul>
+              <% recipe['ingredients'].each do |ingredient| %>
+                <li>
+                  <%= ingredient['quantity'] %> <%= ingredient['unit'] %>
+                  <strong><%= ingredient['item'] %></strong>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+
+          <div class="recipe-steps">
+            <h4>Instructions</h4>
+            <ol>
+              <% recipe['steps'].each do |step| %>
+                <li><%= step %></li>
+              <% end %>
+            </ol>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <!-- Grocery List Section -->
+  <section class="meal-plan-section">
+    <h2>Grocery List</h2>
+    <div class="grocery-list">
+      <div class="total-cost">
+        <h3>Estimated Total Cost: <strong><%= @meal_plan_data['grocery_list']['estimated_total_cost'] %></strong></h3>
+      </div>
+
+      <div class="categories-grid">
+        <% @meal_plan_data['grocery_list']['categories'].each do |category, items| %>
+          <% if items.any? %>
+            <div class="category-section">
+              <h3><%= category.humanize %></h3>
+              <ul class="grocery-items">
+                <% items.each do |item| %>
+                  <li>
+                    <input type="checkbox" id="<%= "item-#{item['item']}" %>">
+                    <label for="<%= "item-#{item['item']}" %>">
+                      <%= item['quantity'] %> <%= item['unit'] %>
+                      <strong><%= item['item'] %></strong>
+                    </label>
+                  </li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+  .meal-plan-result {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+
+  .result-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #ddd;
+  }
+
+  .result-header h1 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+  }
+
+  .result-dates {
+    color: #666;
+    font-size: 1.1rem;
+    margin: 0.5rem 0 1rem 0;
+  }
+
+  .btn-secondary {
+    background-color: #6c757d;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-secondary:hover {
+    background-color: #5a6268;
+  }
+
+  .meal-plan-section {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+  }
+
+  .meal-plan-section h2 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Daily Meals */
+  .daily-meals {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .daily-meal-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 6px;
+    border-left: 4px solid #007bff;
+  }
+
+  .meal-date {
+    margin: 0 0 1rem 0;
+    color: #007bff;
+  }
+
+  .meals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+
+  .meal {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+    border-left: 3px solid #28a745;
+  }
+
+  .meal h4 {
+    margin: 0 0 0.5rem 0;
+    color: #28a745;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+  }
+
+  .meal-name {
+    margin: 0.5rem 0;
+    color: #333;
+    font-weight: 500;
+  }
+
+  .meal-description {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+  }
+
+  /* Recipes */
+  .recipes-grid {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .recipe-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+  }
+
+  .recipe-card h3 {
+    margin: 0 0 1rem 0;
+    color: #333;
+  }
+
+  .recipe-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+  }
+
+  .meta-item {
+    padding: 0.5rem;
+    background-color: #e7f3ff;
+    border-radius: 4px;
+  }
+
+  .meta-item.cost {
+    background-color: #fff3e0;
+    color: #e65100;
+  }
+
+  .recipe-ingredients,
+  .recipe-steps {
+    margin-bottom: 1rem;
+  }
+
+  .recipe-ingredients h4,
+  .recipe-steps h4 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+  }
+
+  .recipe-ingredients ul {
+    margin: 0;
+    padding-left: 1.5rem;
+  }
+
+  .recipe-ingredients li {
+    margin-bottom: 0.5rem;
+    color: #555;
+  }
+
+  .recipe-steps ol {
+    margin: 0;
+    padding-left: 1.5rem;
+  }
+
+  .recipe-steps li {
+    margin-bottom: 0.75rem;
+    color: #555;
+    line-height: 1.5;
+  }
+
+  /* Grocery List */
+  .total-cost {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .total-cost h3 {
+    margin: 0;
+    color: #28a745;
+    font-size: 1.3rem;
+  }
+
+  .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .category-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 6px;
+    border-top: 3px solid #ffc107;
+  }
+
+  .category-section h3 {
+    margin: 0 0 1rem 0;
+    color: #ffc107;
+    font-size: 1rem;
+    text-transform: capitalize;
+  }
+
+  .grocery-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .grocery-items li {
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .grocery-items input[type="checkbox"] {
+    margin-right: 0.75rem;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+
+  .grocery-items label {
+    margin: 0;
+    cursor: pointer;
+    flex: 1;
+    color: #555;
+  }
+
+  .grocery-items input[type="checkbox"]:checked + label {
+    text-decoration: line-through;
+    color: #999;
+  }
+
+  @media (max-width: 768px) {
+    .meals-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .recipe-meta {
+      flex-direction: column;
+    }
+
+    .categories-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

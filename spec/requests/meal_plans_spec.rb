@@ -31,6 +31,51 @@ RSpec.describe 'MealPlans', type: :request do
   end
 
   describe 'POST /meal_plans' do
+    let(:meal_plan_data) do
+      {
+        "meal_plan": [
+          {
+            "date": "2026-05-01",
+            "meals": {
+              "breakfast": { "name": "Vegetarian Omelette", "description": "Fluffy omelette with vegetables" },
+              "lunch": { "name": "Quinoa Buddha Bowl", "description": "Nutritious bowl with grains and veggies" },
+              "dinner": { "name": "Lentil Pasta", "description": "Pasta with lentil sauce" }
+            }
+          }
+        ],
+        "recipes": [
+          {
+            "meal_name": "Vegetarian Omelette",
+            "serves": 2,
+            "prep_time": "5 minutes",
+            "cook_time": "10 minutes",
+            "ingredients": [
+              { "item": "eggs", "quantity": "3", "unit": "whole" },
+              { "item": "bell peppers", "quantity": "1", "unit": "cup" }
+            ],
+            "steps": ["Beat eggs", "Cook in pan", "Add vegetables"],
+            "estimated_cost_per_serving": "$2.50"
+          }
+        ],
+        "grocery_list": {
+          "estimated_total_cost": "$45.00",
+          "categories": {
+            "produce": [
+              { "item": "bell peppers", "quantity": "2", "unit": "lbs" }
+            ],
+            "dairy": [
+              { "item": "eggs", "quantity": "12", "unit": "whole" }
+            ],
+            "grains": [],
+            "meat_fish": [],
+            "pantry": [],
+            "frozen": [],
+            "other": []
+          }
+        }
+      }
+    end
+
     let(:valid_attributes) do
       {
         meal_plan: {
@@ -54,73 +99,169 @@ RSpec.describe 'MealPlans', type: :request do
     end
 
     context 'with valid parameters' do
-      it 'creates a new MealPlan' do
-        expect {
-          post meal_plans_path, params: valid_attributes
-        }.to change(MealPlan, :count).by(1)
+      it 'calls the AIApiService' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan).and_return(data: meal_plan_data)
+
+        post meal_plans_path, params: valid_attributes
+
+        expect(AIApiService).to have_received(:new)
       end
 
-      it 'redirects to the root path' do
+      it 'renders the result view' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan).and_return(data: meal_plan_data)
+
         post meal_plans_path, params: valid_attributes
-        expect(response).to redirect_to(root_path)
+
+        expect(response).to render_template(:result)
       end
 
-      it 'sets a success flash message' do
+      it 'returns a successful response' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan).and_return(data: meal_plan_data)
+
         post meal_plans_path, params: valid_attributes
-        expect(response).to have_http_status(:see_other)
-        follow_redirect!
-        expect(response.body).to include('alert-success')
-        expect(response.body).to include('Meal plan created successfully')
+
+        expect(response).to have_http_status(:ok)
       end
 
-      it 'saves the meal plan with correct attributes' do
+      it 'displays the meal plan data' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan).and_return(data: meal_plan_data)
+
         post meal_plans_path, params: valid_attributes
-        meal_plan = MealPlan.last
-        expect(meal_plan.start_date).to eq(Date.today)
-        expect(meal_plan.end_date).to eq(Date.today + 7.days)
-        expect(meal_plan.servings).to eq(2)
-        expect(meal_plan.dietary_preference).to eq('vegetarian')
+
+        expect(response.body).to include('Your Meal Plan')
+        expect(response.body).to include('Daily Meal Plan')
+        expect(response.body).to include('Recipes')
+        expect(response.body).to include('Grocery List')
+      end
+
+      it 'displays the generated meals' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan).and_return(data: meal_plan_data)
+
+        post meal_plans_path, params: valid_attributes
+
+        expect(response.body).to include('Vegetarian Omelette')
+        expect(response.body).to include('Quinoa Buddha Bowl')
+        expect(response.body).to include('Lentil Pasta')
+      end
+
+      it 'displays recipes with details' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan).and_return(data: meal_plan_data)
+
+        post meal_plans_path, params: valid_attributes
+
+        expect(response.body).to include('eggs')
+        expect(response.body).to include('bell peppers')
+        expect(response.body).to include('Beat eggs')
+      end
+
+      it 'displays grocery list with categories' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan).and_return(data: meal_plan_data)
+
+        post meal_plans_path, params: valid_attributes
+
+        expect(response.body).to include('Produce')
+        expect(response.body).to include('Dairy')
+        expect(response.body).to include('$45.00')
+      end
+
+      it 'passes correct parameters to AIApiService' do
+        service_instance = instance_double(AIApiService)
+        allow(AIApiService).to receive(:new).and_return(service_instance)
+        allow(service_instance).to receive(:create_meal_plan).and_return(data: meal_plan_data)
+
+        post meal_plans_path, params: valid_attributes
+
+        expect(AIApiService).to have_received(:new).with(
+          hash_including(
+            start_date: Date.today,
+            end_date: Date.today + 7.days,
+            num_people: 2,
+            dietary_preferences: 'vegetarian'
+          )
+        )
       end
     end
 
-    context 'with invalid parameters' do
-      it 'does not create a new MealPlan' do
-        expect {
-          post meal_plans_path, params: invalid_attributes
-        }.not_to change(MealPlan, :count)
+    context 'with invalid form parameters' do
+      it 'does not call AIApiService' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan)
+
+        post meal_plans_path, params: invalid_attributes
+
+        expect(AIApiService).not_to have_received(:new)
       end
 
       it 're-renders the new template' do
         post meal_plans_path, params: invalid_attributes
+
         expect(response.body).to include('Create Meal Plan')
       end
 
       it 'returns an unprocessable content status' do
         post meal_plans_path, params: invalid_attributes
+
         expect(response).to have_http_status(:unprocessable_content)
       end
 
       it 'displays error messages' do
         post meal_plans_path, params: invalid_attributes
+
         expect(response.body).to include('error')
       end
     end
 
+    context 'with API errors' do
+      it 'handles API errors gracefully' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan)
+          .and_return(error: 'API error: Rate limit exceeded')
+
+        post meal_plans_path, params: valid_attributes
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body).to include('error')
+        expect(response.body).to include('API error: Rate limit exceeded')
+      end
+
+      it 'handles JSON parse errors' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan)
+          .and_return(error: 'Claude returned invalid JSON: Unexpected token')
+
+        post meal_plans_path, params: valid_attributes
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body).to include('Claude returned invalid JSON')
+      end
+
+      it 're-renders the form on API error' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan)
+          .and_return(error: 'API error: Service unavailable')
+
+        post meal_plans_path, params: valid_attributes
+
+        expect(response.body).to include('Create Meal Plan')
+      end
+    end
+
     context 'with missing parameters' do
-      it 'does not create a meal plan when required fields are missing' do
-        expect {
-          post meal_plans_path, params: { meal_plan: { servings: 2 } }
-        }.not_to change(MealPlan, :count)
+      it 'does not call AIApiService when required fields are missing' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan)
+
+        post meal_plans_path, params: { meal_plan: { servings: 2 } }
+
+        expect(AIApiService).not_to have_received(:new)
       end
 
       it 're-renders the form with errors' do
         post meal_plans_path, params: { meal_plan: { servings: 2 } }
+
         expect(response.body).to include('error')
       end
     end
 
     context 'with invalid date range' do
       it 'rejects when end date is too far in the future' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan)
+
         attributes = {
           meal_plan: {
             start_date: Date.today,
@@ -129,14 +270,16 @@ RSpec.describe 'MealPlans', type: :request do
             dietary_preference: 'vegetarian'
           }
         }
-        expect {
-          post meal_plans_path, params: attributes
-        }.not_to change(MealPlan, :count)
 
+        post meal_plans_path, params: attributes
+
+        expect(AIApiService).not_to have_received(:new)
         expect(response.body).to include('cannot be more than 30 days')
       end
 
       it 'rejects when end date is before start date' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan)
+
         attributes = {
           meal_plan: {
             start_date: Date.today,
@@ -145,14 +288,16 @@ RSpec.describe 'MealPlans', type: :request do
             dietary_preference: 'vegetarian'
           }
         }
-        expect {
-          post meal_plans_path, params: attributes
-        }.not_to change(MealPlan, :count)
 
+        post meal_plans_path, params: attributes
+
+        expect(AIApiService).not_to have_received(:new)
         expect(response.body).to include('must be after or equal to start date')
       end
 
       it 'rejects when date range is less than 1 day' do
+        allow(AIApiService).to receive_message_chain(:new, :create_meal_plan)
+
         attributes = {
           meal_plan: {
             start_date: Date.today,
@@ -161,29 +306,11 @@ RSpec.describe 'MealPlans', type: :request do
             dietary_preference: 'vegetarian'
           }
         }
-        expect {
-          post meal_plans_path, params: attributes
-        }.not_to change(MealPlan, :count)
 
-        expect(response.body).to include('must be at least 1 day after start date')
-      end
-    end
-
-    context 'strong parameters' do
-      it 'only allows whitelisted parameters' do
-        attributes = {
-          meal_plan: {
-            start_date: Date.today,
-            end_date: Date.today + 7.days,
-            servings: 2,
-            dietary_preference: 'vegetarian',
-            admin: true,
-            user_id: 999
-          }
-        }
         post meal_plans_path, params: attributes
-        meal_plan = MealPlan.last
-        expect(meal_plan).not_to have_attribute(:admin)
+
+        expect(AIApiService).not_to have_received(:new)
+        expect(response.body).to include('must be at least 1 day after start date')
       end
     end
   end
