@@ -1,4 +1,4 @@
-require 'meal_planner_prompt.rb'
+require_relative '../modules/meal_planner_prompt'
 
 class AIApiService
   def initialize(params)
@@ -9,21 +9,27 @@ class AIApiService
   end
 
   def create_meal_plan
-    prompt = MealPlannerPrompt.build(prompt_args)
+    prompt = MealPlannerPrompt.build(**prompt_args)
     response = @client.messages.create(
       max_tokens: 8192,
       system: prompt[:system],
       messages: [{role: "user", content: prompt[:user]}],
-      model: :"claude-opus-4-7"
+      model: "claude-opus-4-7"
     )
 
-    raw_text = response.content.select { |b| b.type == "text"}.map(&:text).join
+    # Extract text from response content blocks
+    raw_text = response.content.map { |block| block.text }.join
+
+    if raw_text.blank?
+      return { error: "Claude returned an empty response" }
+    end
+
     parsed = JSON.parse(raw_text)
 
     { data: parsed }
   rescue JSON::ParserError => e
     { error: "Claude returned invalid JSON: #{e.message}" }
-  rescue Anthropic::Error => e
+  rescue StandardError => e
     { error: "API error: #{e.message}" }
   end
 

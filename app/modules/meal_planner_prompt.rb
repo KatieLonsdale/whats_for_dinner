@@ -76,7 +76,7 @@ module MealPlannerPrompt
  
       Return the complete meal plan, all recipes, and the consolidated grocery
       list as a single JSON object matching the structure in your instructions.
-      Estimated costs should reflect typical #{budget_currency} supermarket prices
+      Estimated costs should reflect typical USD supermarket prices
       and are understood to be approximate.
     MSG
  
