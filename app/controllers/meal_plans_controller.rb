@@ -30,6 +30,14 @@ class MealPlansController < ApplicationController
       return render :new, status: :unprocessable_content
     end
 
+    # Save each recipe from the response
+    result[:data][:recipes]&.each do |recipe_data|
+      Recipe.create(
+        name: recipe_data[:meal_name],
+        data: recipe_data
+      )
+    end
+
     # Render the result view with the generated meal plan
     @meal_plan_data = result[:data]
     render :result
