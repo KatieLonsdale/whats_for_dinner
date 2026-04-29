@@ -1,3 +1,5 @@
 class Recipe < ApplicationRecord
-  validates :name, :data, presence: true
+  belongs_to :user
+
+  validates :name, :data, :user_id, presence: true
 end
