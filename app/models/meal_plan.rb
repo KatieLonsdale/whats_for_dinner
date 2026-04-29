@@ -1,4 +1,6 @@
 class MealPlan < ApplicationRecord
+  belongs_to :user
+
   DIETARY_PREFERENCES = [
     'none',
     'vegetarian',

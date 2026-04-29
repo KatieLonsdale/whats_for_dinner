@@ -2,16 +2,19 @@ require_relative '../services/ai_api_service'
 
 class MealPlansController < ApplicationController
   def new
+    @user_id = params[:user_id]
     @meal_plan = MealPlan.new
   end
 
   def create
-    @meal_plan = MealPlan.new(meal_plan_params)
+    @user_id = meal_plan_params[:user_id]
+    @meal_plan = MealPlan.new(meal_plan_params.except(:user_id))
+    @meal_plan.user_id = @user_id
 
     # Validate the meal plan params (form validation)
     unless @meal_plan.valid?
       return render :new, status: :unprocessable_content
-    end
+end
 
     # Map form params to AIApiService params
     service_params = {
@@ -34,7 +37,8 @@ class MealPlansController < ApplicationController
     result[:data][:recipes]&.each do |recipe_data|
       Recipe.create(
         name: recipe_data[:meal_name],
-        data: recipe_data
+        data: recipe_data,
+        user_id: @user_id
       )
     end
 
@@ -46,6 +50,6 @@ class MealPlansController < ApplicationController
   private
 
   def meal_plan_params
-    params.require(:meal_plan).permit(:start_date, :end_date, :servings, :dietary_preference)
+    params.require(:meal_plan).permit(:start_date, :end_date, :servings, :dietary_preference, :user_id)
   end
 end
