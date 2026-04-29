@@ -2,6 +2,7 @@
   <h1>Create Meal Plan</h1>
 
   <%= form_with(model: @meal_plan, local: true, data: { turbo: false }) do |form| %>
+    <%= form.hidden_field :user_id, value: @user_id %>
     <% if @meal_plan.errors.any? %>
       <div class="error-messages">
         <h2><%= pluralize(@meal_plan.errors.count, "error") %> prohibited this meal plan from being saved:</h2>
